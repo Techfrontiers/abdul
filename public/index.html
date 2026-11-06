@@ -249,9 +249,10 @@ function msgHtml(m){
   }
   return `<div class="msg ${m.role}"><div class="avatar">${av}</div>
     <div style="flex:1;min-width:0"><div class="who">${who}</div>
-    <div class="bubble">${doc}${img}${esc(m.content)}</div></div></div>`;
+    <div class="bubble">${doc}${img}${fmt(m.content)}</div></div></div>`;
 }
 function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function fmt(s){ return esc(s).replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br>"); }
 
 function setLang(l){
   lang = (l === "en") ? "en" : "th";
