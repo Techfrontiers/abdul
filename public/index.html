@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>อับดุล — ถามไรตอบได้</title>
+<style>
+  :root{
+    --bg:#fff8ec; --panel:#ffffff; --ink:#2b2118; --muted:#8a7a68;
+    --brand:#e2701d; --brand-dark:#b9550f; --bubble-user:#ffe7c7;
+    --bubble-ai:#fff; --line:#eadfce; --chip:#f6ead6;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,"Noto Sans Thai",sans-serif;
+    background:var(--bg);color:var(--ink);display:flex}
+  /* sidebar */
+  aside{width:260px;flex:0 0 260px;background:#2b2118;color:#f5e9d5;display:flex;
+    flex-direction:column;padding:14px}
+  aside h1{font-size:20px;margin:2px 0 2px}
+  aside .tag{font-size:12px;color:#cbb694;margin:0 0 14px}
+  .newchat{width:100%;padding:10px;border:0;border-radius:10px;background:var(--brand);
+    color:#fff;font-size:15px;cursor:pointer}
+  .newchat:hover{background:var(--brand-dark)}
+  #history{flex:1;overflow-y:auto;margin-top:12px;display:flex;flex-direction:column;gap:4px}
+  .hitem{padding:9px 10px;border-radius:8px;cursor:pointer;font-size:14px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hitem:hover{background:#3d2f22}
+  .hitem.active{background:#4a3a28}
+  .hitem .del{float:right;color:#a08b74}
+  aside .foot{font-size:11px;color:#a08b74;line-height:1.5}
+  /* main */
+  main{flex:1;display:flex;flex-direction:column;min-width:0}
+  #chat{flex:1;overflow-y:auto;padding:24px 0 12px}
+  .wrap{max-width:760px;margin:0 auto;padding:0 16px}
+  .hero{text-align:center;padding:48px 16px 8px}
+  .hero .face{font-size:56px}
+  .hero h2{margin:8px 0 4px;font-size:26px}
+  .hero p{color:var(--muted);margin:0}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:20px 0}
+  .chip{background:var(--chip);border:1px solid var(--line);border-radius:999px;
+    padding:8px 14px;font-size:14px;cursor:pointer}
+  .chip:hover{border-color:var(--brand)}
+  .msg{display:flex;gap:12px;margin:18px 0}
+  .avatar{flex:0 0 34px;width:34px;height:34px;border-radius:50%;display:flex;
+    align-items:center;justify-content:center;font-size:19px;background:#f3e3c8}
+  .msg.user .avatar{background:var(--brand);color:#fff;font-size:15px}
+  .bubble{flex:1;background:var(--bubble-ai);border:1px solid var(--line);
+    border-radius:14px;padding:12px 14px;line-height:1.75;white-space:pre-wrap;
+    word-break:break-word;font-size:15.5px}
+  .msg.user .bubble{background:var(--bubble-user);border-color:#f3d3a4}
+  .msg .who{font-size:12px;color:var(--muted);margin-bottom:4px}
+  .doc{font-size:13px;color:var(--muted);background:#faf3e5;border:1px dashed var(--line);
+    border-radius:8px;padding:8px 10px;margin-bottom:8px;white-space:pre-wrap;
+    max-height:120px;overflow:hidden}
+  .thinking{color:var(--muted);font-style:italic}
+  /* composer */
+  #composer{padding:10px 0 18px}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 4px 18px rgba(80,50,10,.08);padding:8px}
+  #docwrap{display:none;margin:2px 4px 8px}
+  #docwrap.open{display:block}
+  #doc{width:100%;min-height:90px;border:1px dashed var(--line);border-radius:10px;
+    padding:10px;font:inherit;font-size:14px;resize:vertical;background:#fffdf7}
+  .row{display:flex;gap:8px;align-items:flex-end}
+  #q{flex:1;border:0;outline:none;font:inherit;font-size:16px;padding:10px 8px;
+    resize:none;max-height:160px;background:transparent}
+  #send{flex:0 0 auto;border:0;border-radius:12px;background:var(--brand);color:#fff;
+    font-size:15px;padding:11px 18px;cursor:pointer}
+  #send:disabled{opacity:.5;cursor:wait}
+  .tools{display:flex;gap:6px;padding:4px 4px 0}
+  .tool{border:0;background:none;color:var(--muted);font-size:13px;cursor:pointer;
+    padding:4px 8px;border-radius:8px}
+  .tool.on{background:var(--chip);color:var(--brand-dark)}
+  .hint{text-align:center;color:var(--muted);font-size:12px;margin-top:8px}
+  @media (max-width:720px){
+    aside{display:none}
+    .hero{padding-top:28px}
+  }
+</style>
+</head>
+<body>
+<aside>
+  <h1>🧔 อับดุล</h1>
+  <p class="tag">ถามไรตอบได้ — ภาษาบ้านๆ เข้าใจง่าย</p>
+  <button class="newchat" id="newchat">+ แชทใหม่</button>
+  <div id="history"></div>
+  <p class="foot">อับดุลตอบจากความรู้ทั่วไปและเอกสารที่แปะมา — ถ้าไม่แน่ใจจะบอกตรงๆ ว่าไม่แน่ใจ อย่าใช้แทนคำแนะนำแพทย์ กฎหมาย หรือการเงินโดยตรง</p>
+</aside>
+
+<main>
+  <div id="chat"><div class="wrap" id="chatwrap">
+    <div class="hero" id="hero">
+      <div class="face">🧔</div>
+      <h2>ถามอับดุลได้เลย</h2>
+      <p>ถามอะไรก็ได้ — อับดุลจะตอบเป็นภาษาบ้านๆ ให้เข้าใจง่าย<br>หรือแปะเอกสารมาแล้วถามว่า “อันนี้คืออะไร” ก็ได้</p>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div id="msgs"></div>
+  </div></div>
+
+  <div id="composer"><div class="wrap">
+    <div class="box">
+      <div id="docwrap">
+        <textarea id="doc" placeholder="แปะเอกสารตรงนี้ — เช่น ข้อความจากจดหมาย สัญญา ใบแจ้งหนี้ ประกาศ หรือบทความที่อ่านแล้วงง"></textarea>
+      </div>
+      <div class="row">
+        <textarea id="q" rows="1" placeholder="ถามอะไรก็ได้…"></textarea>
+        <button id="send">ส่ง ➤</button>
+      </div>
+      <div class="tools">
+        <button class="tool" id="doctoggle">📄 แปะเอกสารแล้วถาม</button>
+        <button class="tool" id="cleardoc" style="display:none">✕ ลบเอกสารที่แปะ</button>
+      </div>
+    </div>
+    <p class="hint">อับดุลอาจตอบผิดได้ — ถ้าเรื่องสำคัญ ตรวจกับแหล่งต้นทางอีกทีนะ</p>
+  </div></div>
+</main>
+
+<script>
+const EXAMPLES = [
+  "ดอกเบี้ยทบต้นคืออะไร",
+  "เงินเฟ้อแปลว่าอะไร ทำไมของแพงขึ้น",
+  "วิธีล้างแอร์เบื้องต้นทำยังไง",
+  "ประกันสังคม ม.33 กับ ม.39 ต่างกันยังไง",
+];
+const $ = s => document.querySelector(s);
+const msgsEl = $("#msgs"), qEl = $("#q"), docEl = $("#doc");
+let chats = JSON.parse(localStorage.getItem("abdul-chats") || "[]");
+let currentId = null, sending = false;
+
+function saveChats(){ localStorage.setItem("abdul-chats", JSON.stringify(chats.slice(0,20))); }
+function newChat(){
+  currentId = "c" + Date.now();
+  chats.unshift({id: currentId, title: "แชทใหม่", messages: []});
+  saveChats(); renderHistory(); renderMsgs();
+}
+function current(){ return chats.find(c => c.id === currentId); }
+function renderHistory(){
+  $("#history").innerHTML = chats.map(c =>
+    `<div class="hitem ${c.id===currentId?"active":""}" data-id="${c.id}">${esc(c.title)}
+     <span class="del" data-del="${c.id}">✕</span></div>`).join("");
+}
+function renderMsgs(){
+  const c = current();
+  $("#hero").style.display = (!c || c.messages.length === 0) ? "" : "none";
+  msgsEl.innerHTML = (c ? c.messages : []).map(m => msgHtml(m)).join("");
+  $("#chat").scrollTop = $("#chat").scrollHeight;
+}
+function msgHtml(m){
+  const who = m.role === "user" ? "คุณ" : "อับดุล";
+  const av = m.role === "user" ? "คุณ" : "🧔";
+  const doc = m.doc ? `<div class="doc">📄 เอกสารที่แปะมา:\n${esc(m.doc.slice(0,300))}${m.doc.length>300?"…":""}</div>` : "";
+  return `<div class="msg ${m.role}"><div class="avatar">${av}</div>
+    <div style="flex:1;min-width:0"><div class="who">${who}</div>
+    <div class="bubble">${doc}${esc(m.content)}</div></div></div>`;
+}
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+async function send(){
+  if (sending) return;
+  const q = qEl.value.trim(), doc = docEl.value.trim();
+  if (!q) return;
+  if (!current()) newChat();
+  const c = current();
+  c.messages.push({role:"user", content:q, doc: doc || undefined});
+  if (c.messages.length <= 1) c.title = q.slice(0, 28);
+  qEl.value = ""; autoGrow();
+  renderMsgs(); saveChats(); renderHistory();
+  sending = true; $("#send").disabled = true;
+  const t = document.createElement("div");
+  t.className = "msg assistant";
+  t.innerHTML = `<div class="avatar">🧔</div><div style="flex:1"><div class="who">อับดุล</div>
+    <div class="bubble thinking">กำลังคิด…</div></div>`;
+  msgsEl.appendChild(t);
+  $("#chat").scrollTop = $("#chat").scrollHeight;
+  try {
+    const r = await fetch("/api/chat", {method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({question: q, document: doc,
+        history: c.messages.slice(0,-1).map(m => ({role:m.role, content:m.content}))})});
+    const d = await r.json();
+    t.remove();
+    c.messages.push({role:"assistant", content: d.answer || d.error || "อับดุลตอบไม่ได้ ลองใหม่อีกทีนะ"});
+  } catch(e) {
+    t.remove();
+    c.messages.push({role:"assistant", content:"เน็ตหรือเซิร์ฟเวอร์มีปัญหา ลองใหม่อีกทีนะ"});
+  }
+  sending = false; $("#send").disabled = false;
+  renderMsgs(); saveChats(); renderHistory();
+  qEl.focus();
+}
+function autoGrow(){ qEl.style.height = "auto"; qEl.style.height = Math.min(qEl.scrollHeight, 160) + "px"; }
+
+$("#send").onclick = send;
+qEl.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); send(); }
+});
+qEl.addEventListener("input", autoGrow);
+$("#newchat").onclick = newChat;
+$("#history").addEventListener("click", e => {
+  const del = e.target.dataset.del;
+  if (del){ chats = chats.filter(c => c.id !== del);
+    if (currentId === del){ currentId = chats[0]?.id || null; }
+    saveChats(); renderHistory(); renderMsgs(); return; }
+  const item = e.target.closest(".hitem");
+  if (item){ currentId = item.dataset.id; renderHistory(); renderMsgs(); }
+});
+$("#doctoggle").onclick = () => {
+  const w = $("#docwrap"), open = w.classList.toggle("open");
+  $("#doctoggle").classList.toggle("on", open);
+  $("#cleardoc").style.display = open ? "" : "none";
+  if (open) docEl.focus();
+};
+$("#cleardoc").onclick = () => { docEl.value = ""; };
+$("#chips").innerHTML = EXAMPLES.map(x => `<button class="chip">${esc(x)}</button>`).join("");
+$("#chips").addEventListener("click", e => {
+  if (e.target.classList.contains("chip")){ qEl.value = e.target.textContent; qEl.focus(); send(); }
+});
+
+// boot
+if (chats.length === 0) newChat();
+else { currentId = chats[0].id; renderHistory(); renderMsgs(); }
+renderHistory();
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+[Unit]
+Description=Abdul - Ctrl+V hackathon chat prototype
+After=network.target sydear-router-gateway.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/abdul
+ExecStart=/usr/bin/python3 /opt/abdul/server.py
+Environment=ABDUL_PORT=28100
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
