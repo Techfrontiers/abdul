@@ -122,7 +122,16 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     # -- routes -------------------------------------------------------
+    # NOTE: /api/chat always answers HTTP 200 with {"answer": ...} or
+    # {"error": ...} in the body. Application errors must NOT use 5xx
+    # statuses: Cloudflare replaces a 5xx origin response with its own
+    # error page, so the browser would never see our JSON.
     def do_GET(self):
+        if self.path == "/favicon.ico":
+            self.send_response(204)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
         if self.path in ("/", "/index.html"):
             return self._static("index.html")
         if self.path == "/api/health":
@@ -134,19 +143,19 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(404, {"error": "not found"})
         ip = self.client_address[0]
         if not _allowed(ip):
-            return self._json(429, {"error": "ถามบ่อยไปหน่อย พักแป๊บแล้วถามใหม่นะ"})
+            return self._json(200, {"error": "ถามบ่อยไปหน่อย พักแป๊บแล้วถามใหม่นะ"})
         try:
             length = int(self.headers.get("Content-Length") or 0)
             if length > 200_000:
-                return self._json(413, {"error": "ข้อความยาวเกินไป"})
+                return self._json(200, {"error": "ข้อความยาวเกินไป"})
             payload = json.loads(self.rfile.read(length) or b"{}")
         except Exception:
-            return self._json(400, {"error": "ส่งข้อมูลมาไม่ถูก ลองใหม่อีกทีนะ"})
+            return self._json(200, {"error": "ส่งข้อมูลมาไม่ถูก ลองใหม่อีกทีนะ"})
         question = str(payload.get("question") or "").strip()[:MAX_Q_CHARS]
         document = str(payload.get("document") or "").strip()[:MAX_DOC_CHARS]
         history = payload.get("history") or []
         if not question:
-            return self._json(400, {"error": "พิมพ์คำถามก่อนนะ"})
+            return self._json(200, {"error": "พิมพ์คำถามก่อนนะ"})
         if document:
             user_text = (
                 "ผู้ใช้แปะเอกสารมา แล้วถามว่า: " + question + "\n\n"
@@ -171,12 +180,12 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 msg = ""
             print(f"[abdul] gateway HTTP {e.code}: {msg[:200]}")
-            return self._json(502, {
+            return self._json(200, {
                 "error": "ตอนนี้สมองของอับดุลตอบไม่ได้ ลองใหม่อีกทีนะ"
                          + (f" ({msg[:80]})" if msg else "")})
         except Exception as e:
             print(f"[abdul] gateway error: {e}")
-            return self._json(502, {
+            return self._json(200, {
                 "error": "ตอนนี้อับดุลติดขัดนิดหน่อย ลองใหม่อีกทีนะ"})
         return self._json(200, {"answer": answer})
 
