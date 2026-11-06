@@ -56,6 +56,17 @@
   .attachimg{max-width:100%;max-height:260px;border-radius:10px;display:block;margin-bottom:8px}
   .attachthumb{max-width:220px;max-height:140px;border-radius:10px;display:block}
   .thinking{color:var(--muted);font-style:italic}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  #msgs .msg:last-child{animation:rise .25s ease-out}
+  @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  .hero .face{animation:floaty 3s ease-in-out infinite}
+  @keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+  .thinking .dot{display:inline-block;animation:blink 1.2s infinite}
+  .thinking .dot:nth-child(2){animation-delay:.2s}
+  .thinking .dot:nth-child(3){animation-delay:.4s}
+  @media (prefers-reduced-motion: reduce){
+    #msgs .msg:last-child,.hero .face,.thinking .dot{animation:none}
+  }
   /* composer */
   #composer{padding:10px 0 18px}
   .box{background:var(--panel);border:1px solid var(--line);border-radius:16px;
@@ -157,7 +168,7 @@ const I18N = {
     clearDoc: "✕ ลบเอกสารที่แปะ",
     upload: "📎 แนบไฟล์",
     hint: "อับดุลอาจตอบผิดได้ — ถ้าเรื่องสำคัญ ตรวจกับแหล่งต้นทางอีกทีนะ",
-    thinking: "กำลังคิด…",
+    thinking: "กำลังคิด",
     you: "คุณ",
     abdul: "อับดุล",
     newChatTitle: "แชทใหม่",
@@ -192,7 +203,7 @@ const I18N = {
     clearDoc: "✕ Clear pasted document",
     upload: "📎 Attach a file",
     hint: "Abdul can get things wrong — for important matters, double-check the original source.",
-    thinking: "Thinking…",
+    thinking: "Thinking",
     you: "You",
     abdul: "Abdul",
     newChatTitle: "New chat",
@@ -335,9 +346,10 @@ async function send(){
   const t = document.createElement("div");
   t.className = "msg assistant";
   t.innerHTML = `<div class="avatar">${c.avatarAi || "🧔"}</div><div style="flex:1"><div class="who">${s.abdul}</div>
-    <div class="bubble thinking">${esc(s.thinking)}</div></div>`;
+    <div class="bubble thinking">${esc(s.thinking)}<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div></div>`;
   msgsEl.appendChild(t);
   $("#chat").scrollTop = $("#chat").scrollHeight;
+  let streamed = false;
   try {
     const r = await fetch("/api/chat", {method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -346,14 +358,37 @@ async function send(){
     if (r.status === 413) throw {tooBig: true};
     const d = await r.json();
     t.remove();
-    c.messages.push({role:"assistant", content: d.answer || d.error || s.noAnswer});
+    const full = d.answer || d.error || s.noAnswer;
+    const am = {role:"assistant", content:""};
+    c.messages.push(am);
+    streamed = true;
+    renderMsgs();
+    const streamBubble = msgsEl.querySelector(".msg:last-child .bubble");
+    // reveal by characters (not words: Thai has few spaces, word chunks finish instantly)
+    const chars = [...full];
+    const step = Math.max(1, Math.ceil(chars.length / 55));
+    let i = 0;
+    const iv = setInterval(() => {
+      i = Math.min(chars.length, i + step);
+      am.content = chars.slice(0, i).join("");
+      if (streamBubble) streamBubble.innerHTML = fmt(am.content);
+      $("#chat").scrollTop = $("#chat").scrollHeight;
+      if (i >= chars.length){
+        clearInterval(iv);
+        sending = false; $("#send").disabled = false;
+        saveChats(); renderHistory();
+        qEl.focus();
+      }
+    }, 16);
   } catch(e) {
     t.remove();
     c.messages.push({role:"assistant", content: (e && e.tooBig) ? s.fileTooBig : s.netErr});
   }
-  sending = false; $("#send").disabled = false;
-  renderMsgs(); saveChats(); renderHistory();
-  qEl.focus();
+  if (!streamed){
+    sending = false; $("#send").disabled = false;
+    renderMsgs(); saveChats(); renderHistory();
+    qEl.focus();
+  }
 }
 function autoGrow(){ qEl.style.height = "auto"; qEl.style.height = Math.min(qEl.scrollHeight, 160) + "px"; }
 
