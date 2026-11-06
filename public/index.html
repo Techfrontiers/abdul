@@ -212,9 +212,10 @@ const MAX_FILE_BYTES = 5_000_000;
 // random avatars, one pair per chat (user side + AI side, never the same)
 const AVATARS_AI = ["🧔","👳","🧕","🧑‍🎓","🦸","🤖","🦊","🦁","🐼","🦄","🐸","👽","🧙","🎅","🐶","🐱"];
 const AVATARS_USER = ["😀","😎","🤩","🥳","😊","🤓","🧑‍🚀","👩‍🎤","🧑‍🎨","🦊","🐶","🐱","🦁","🐼","🦄","🌸","⭐","🎮"];
-function pickAvatar(pool, notThis){
+function pickAvatar(pool, notThese){
+  const banned = new Set(notThese || []);
   let a = pool[Math.floor(Math.random()*pool.length)];
-  while (pool.length > 1 && a === notThis) a = pool[Math.floor(Math.random()*pool.length)];
+  while (pool.length > banned.size && banned.has(a)) a = pool[Math.floor(Math.random()*pool.length)];
   return a;
 }
 const $ = s => document.querySelector(s);
@@ -233,10 +234,11 @@ function saveChats(){
   try { localStorage.setItem("abdul-chats", JSON.stringify(clean)); } catch(e) {}
 }
 function newChat(){
+  const prev = current();
   currentId = "c" + Date.now();
-  const avatarUser = pickAvatar(AVATARS_USER);
+  const avatarUser = pickAvatar(AVATARS_USER, [prev?.avatarUser]);
   chats.unshift({id: currentId, title: STR().newChatTitle, messages: [],
-    avatarUser, avatarAi: pickAvatar(AVATARS_AI, avatarUser)});
+    avatarUser, avatarAi: pickAvatar(AVATARS_AI, [avatarUser, prev?.avatarAi])});
   saveChats(); renderHistory(); renderMsgs();
 }
 function current(){ return chats.find(c => c.id === currentId); }
@@ -412,7 +414,7 @@ $("#chips").addEventListener("click", e => {
 // older chats predate avatars: give each a random pair once, then keep it
 chats.forEach(c => {
   if (!c.avatarUser) c.avatarUser = pickAvatar(AVATARS_USER);
-  if (!c.avatarAi) c.avatarAi = pickAvatar(AVATARS_AI, c.avatarUser);
+  if (!c.avatarAi) c.avatarAi = pickAvatar(AVATARS_AI, [c.avatarUser]);
 });
 saveChats();
 
