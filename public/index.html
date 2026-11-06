@@ -324,12 +324,13 @@ async function send(){
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify({question: q, document: doc, image, lang,
         history: c.messages.slice(0,-1).map(m => ({role:m.role, content:m.content}))})});
+    if (r.status === 413) throw {tooBig: true};
     const d = await r.json();
     t.remove();
     c.messages.push({role:"assistant", content: d.answer || d.error || s.noAnswer});
   } catch(e) {
     t.remove();
-    c.messages.push({role:"assistant", content: s.netErr});
+    c.messages.push({role:"assistant", content: (e && e.tooBig) ? s.fileTooBig : s.netErr});
   }
   sending = false; $("#send").disabled = false;
   renderMsgs(); saveChats(); renderHistory();
